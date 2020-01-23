@@ -1,7 +1,13 @@
 #include "kalman_filter.h"
+#include "FusionEKF.h"
+
+#include <iostream>
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
+
+using std::cout;
+using std::endl;
 
 /* 
  * Please note that the Eigen library does not initialize 
@@ -11,17 +17,6 @@ using Eigen::VectorXd;
 KalmanFilter::KalmanFilter() {}
 
 KalmanFilter::~KalmanFilter() {}
-
-void KalmanFilter::Init(VectorXd &x_in, MatrixXd &P_in, MatrixXd &F_in,
-                        MatrixXd &H_in, MatrixXd &R_in, MatrixXd &Q_in) {
-  x_ = x_in;
-  P_ = P_in;
-  F_ = F_in;
-  H_ = H_in;
-  R_ = R_in;
-  Q_ = Q_in;
-  
-}
 
 void KalmanFilter::Predict() 
 {
@@ -36,35 +31,60 @@ void KalmanFilter::Update(const VectorXd &z) {
   /**
    * TODO: update the state by using Kalman Filter equations (Laser updates)
    */
-  VectorXd y = z - H_ * x_; //innovation calculation
-  MatrixXd Ht = H_.transpose();
-  MatrixXd S = H_ * P_ * Ht + R_;
+
+  VectorXd y = z - H_laser_ * x_; //innovation calculation
+  MatrixXd Ht = H_laser_.transpose();
+  MatrixXd S = H_laser_ * P_ * Ht + R_laser_;
   MatrixXd Si = S.inverse();
   MatrixXd PHt = P_ * Ht;
   MatrixXd K = PHt * Si;
 
   //new estimate
   x_ = x_ + (K * y);
-  long x_size = x_.size();
-  MatrixXd I = MatrixXd::Identity(x_size, x_size);
-  P_ = (I - K * H_) * P_;
+  P_ = (I_ - K * H_laser_) * P_;
+  //P_ = (I_ - K * H_laser_) * P_* (I_ - K * H_laser_).transpose() + K * R_laser_ * K.transpose();
 }
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
   /**
    * TODO: update the state by using Extended Kalman Filter equations (Radar updates)
    */
-  MatrixXd H_j = tools_.CalculateJacobian(x_);
-  VectorXd y = z - H_j * x_; //innovation calculation REMEMBER TO CHANGE THE H_J WITH h()
-  MatrixXd H_jt = H_j.transpose();
-  MatrixXd S = H_ * P_ * H_jt + R_;
+
+  VectorXd z_hat = VectorXd(3);
+  PredictMeasurement(z_hat);
+
+  VectorXd y = z - z_hat; //innovation calculation
+
+  while (y[1] < -M_PI) 
+  {
+    y[1] = y[1] + 2 * M_PI;
+  }
+
+  while (y[1] > M_PI) 
+  {
+    y[1] = y[1] - 2 * M_PI;
+  }
+
+  H_j_ = tools_.CalculateJacobian(x_);
+
+  MatrixXd H_jt = H_j_.transpose();
+  MatrixXd S = H_j_ * P_ * H_jt + R_radar_;
   MatrixXd Si = S.inverse();
   MatrixXd PHt = P_ * H_jt;
   MatrixXd K = PHt * Si;
 
   //new estimate
   x_ = x_ + (K * y);
-  long x_size = x_.size();
-  MatrixXd I = MatrixXd::Identity(x_size, x_size);
-  P_ = (I - K * H_) * P_;
+  P_ = (I_ - K * H_j_) * P_;
+
+  //P_ = (I_ - K * H_j_) * P_* (I_ - K * H_j_).transpose() + K * R_radar_ * K.transpose();
+}
+
+void KalmanFilter::PredictMeasurement(VectorXd &z_hat) {
+  /**
+   * x_[0] = px // x_[1] = py // x_[2] = vx // x_[3] = vy
+   */
+  z_hat[0] = sqrt(x_[0]*x_[0] + x_[1]*x_[1]);
+  z_hat[1] = atan2(x_[1],x_[0]);
+  z_hat[2] = (x_[0]*x_[2] + x_[1]*x_[3])/z_hat[0];
 }

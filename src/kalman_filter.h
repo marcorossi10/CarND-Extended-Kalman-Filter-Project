@@ -3,6 +3,8 @@
 
 #include "Eigen/Dense"
 #include "tools.h"
+#include <math.h> 
+
 
 class KalmanFilter {
  public:
@@ -26,7 +28,8 @@ class KalmanFilter {
    * @param Q_in Process covariance matrix
    */
   void Init(Eigen::VectorXd &x_in, Eigen::MatrixXd &P_in, Eigen::MatrixXd &F_in,
-            Eigen::MatrixXd &H_in, Eigen::MatrixXd &R_in, Eigen::MatrixXd &Q_in);
+            Eigen::MatrixXd &H_in_laser, Eigen::MatrixXd &H_in_j, Eigen::MatrixXd &R_in_radar,
+            Eigen::MatrixXd &R_in_laser, Eigen::MatrixXd &Q_in);
 
   /**
    * Prediction Predicts the state and the state covariance
@@ -45,6 +48,12 @@ class KalmanFilter {
    * @param z The measurement at k+1
    */
   void UpdateEKF(const Eigen::VectorXd &z);
+  
+  /**
+   * Compute the predicted radar measurements according to the current state
+   * @param z_hat The predicted measurement
+   */
+  void PredictMeasurement(Eigen::VectorXd &z_hat);
 
   // state vector
   Eigen::VectorXd x_;
@@ -58,12 +67,22 @@ class KalmanFilter {
   // process covariance matrix
   Eigen::MatrixXd Q_;
 
-  // measurement matrix
-  Eigen::MatrixXd H_;
+  // measurement matrix for laser/lidar
+  Eigen::MatrixXd H_laser_;
 
-  // measurement covariance matrix
-  Eigen::MatrixXd R_;
+  // measurement matrix for radar
+  Eigen::MatrixXd H_j_;
 
+  // measurement covariance matrix for radar
+  Eigen::MatrixXd R_radar_;
+
+  // measurement covariance matrix for laser/lidar
+  Eigen::MatrixXd R_laser_;
+
+  // Identity matrix to avoid multiple assignements
+  Eigen::MatrixXd I_;
+  
+  // Tool object used to compute Jacobian and RMSE
   Tools tools_;
 };
 
