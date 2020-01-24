@@ -6,9 +6,6 @@
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-using std::cout;
-using std::endl;
-
 /*
  * Please note that the Eigen library does not initialize
  *   VectorXd or MatrixXd objects with zeros upon creation.
@@ -21,7 +18,7 @@ KalmanFilter::~KalmanFilter() {}
 void KalmanFilter::Predict()
 {
   /**
-   * TODO: predict the state
+   * Predict the state
    */
   x_ = F_ * x_;
   P_ = F_ * P_ * F_.transpose() + Q_;
@@ -30,7 +27,7 @@ void KalmanFilter::Predict()
 void KalmanFilter::Update(const VectorXd &z)
 {
   /**
-   * TODO: update the state by using Kalman Filter equations (Laser updates)
+   * Update the state by using Kalman Filter equations (Laser updates)
    */
 
   VectorXd y = z - H_laser_ * x_; //innovation calculation
@@ -43,19 +40,16 @@ void KalmanFilter::Update(const VectorXd &z)
   //new estimate
   x_ = x_ + (K * y);
   P_ = (I_ - K * H_laser_) * P_;
-  //P_ = (I_ - K * H_laser_) * P_* (I_ - K * H_laser_).transpose() + K * R_laser_ * K.transpose();
 }
 
 void KalmanFilter::UpdateEKF(const VectorXd &z)
 {
   /**
-   * TODO: update the state by using Extended Kalman Filter equations (Radar updates)
+   * Update the state by using Extended Kalman Filter equations (Radar updates)
    */
 
   VectorXd z_hat = VectorXd(3);
   PredictMeasurement(z_hat);
-  cout << "meascheck: z[2]" << z[2] * 180.0 / 3.141592654 << endl;
-  cout << "meascheck: z_hat[2]" << z_hat[2] * 180.0 / 3.141592654 << endl;
   VectorXd y = z - z_hat; //innovation calculation
 
   while (y[1] < -M_PI)
@@ -68,8 +62,6 @@ void KalmanFilter::UpdateEKF(const VectorXd &z)
     y[1] = y[1] - 2 * M_PI;
   }
 
-  // cout << "meascheck: z_hat[2] after" << y[2] * 180.0 / 3.141592654 << endl;
-
   H_j_ = tools_.CalculateJacobian(x_);
 
   MatrixXd H_jt = H_j_.transpose();
@@ -81,8 +73,6 @@ void KalmanFilter::UpdateEKF(const VectorXd &z)
   //new estimate
   x_ = x_ + (K * y);
   P_ = (I_ - K * H_j_) * P_;
-
-  //P_ = (I_ - K * H_j_) * P_* (I_ - K * H_j_).transpose() + K * R_radar_ * K.transpose();
 }
 
 void KalmanFilter::PredictMeasurement(VectorXd &z_hat)

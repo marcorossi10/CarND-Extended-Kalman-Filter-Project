@@ -3,11 +3,11 @@
 
 #include "Eigen/Dense"
 #include "tools.h"
-#include <math.h> 
+#include <math.h>
 
-
-class KalmanFilter {
- public:
+class KalmanFilter
+{
+public:
   /**
    * Constructor
    */
@@ -48,7 +48,7 @@ class KalmanFilter {
    * @param z The measurement at k+1
    */
   void UpdateEKF(const Eigen::VectorXd &z);
-  
+
   /**
    * Compute the predicted radar measurements according to the current state
    * @param z_hat The predicted measurement
@@ -81,7 +81,7 @@ class KalmanFilter {
 
   // Identity matrix to avoid multiple assignements
   Eigen::MatrixXd I_;
-  
+
   // Tool object used to compute Jacobian and RMSE
   Tools tools_;
 };
